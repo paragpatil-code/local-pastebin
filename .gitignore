@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Local Data (Crucial: do not commit personal pastes!)
+pastes.json
+
+# Environment variables
+.env
+
+# Logs and debug files
+logs
+*.log
+npm-debug.log*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

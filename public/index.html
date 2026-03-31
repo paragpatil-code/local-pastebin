@@ -1,0 +1,42 @@
+<!DOCTYPE strict html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Pastebin</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+    
+    <div class="container">
+        <header>
+            <h1>Local Pastebin</h1>
+            <p>Sync text securely across your local network</p>
+        </header>
+
+        <main>
+            <div class="glass-panel create-paste-panel">
+                <textarea id="paste-input" placeholder="Type or paste something here..."></textarea>
+                <div class="action-bar">
+                    <button id="save-btn" class="primary-btn">Save Paste</button>
+                    <span id="save-status" class="status-msg"></span>
+                </div>
+            </div>
+
+            <div class="recent-pastes">
+                <h2>Recent Pastes</h2>
+                <div id="pastes-container" class="pastes-list">
+                    <!-- Pastes will be rendered here dynamically -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
