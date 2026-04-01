@@ -31,3 +31,8 @@ We followed strict instructions to provide a premium design using Vanilla CSS:
 - Glassmorphed cards and panels
 - Clean layout using the Inter font family
 - Built-in one-click copy to clipboard
+
+---
+
+> [!NOTE]
+> **Disclaimer:** This project was written entirely by an AI. If it breaks, it's a feature. If it works, it's a miracle. Enjoy the slop!
