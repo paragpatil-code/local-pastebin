@@ -35,4 +35,4 @@ We followed strict instructions to provide a premium design using Vanilla CSS:
 ---
 
 > [!NOTE]
-> **Disclaimer:** This project was written entirely by an AI. If it breaks, it's a feature. If it works, it's a miracle. Enjoy the slop!
+> **Disclaimer:** This project was written entirely by an AI. Enjoy the AI slop!
