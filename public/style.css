@@ -87,6 +87,7 @@ header h1 {
     letter-spacing: -0.02em;
     background: linear-gradient(to right, #60a5fa, #c084fc);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 0.5rem;
 }
@@ -156,6 +157,23 @@ header p {
 
 .primary-btn:active {
     transform: scale(0.98);
+}
+
+.secondary-btn {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--text-secondary);
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.secondary-btn:hover {
+    background: rgba(148, 163, 184, 0.1);
+    color: var(--text-primary);
 }
 
 .status-msg {
@@ -245,6 +263,22 @@ header p {
 
 .copy-btn:hover {
     background: var(--primary);
+    color: white;
+}
+
+.edit-btn {
+    background: transparent;
+    color: #f59e0b;
+    border: 1px solid #f59e0b;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.edit-btn:hover {
+    background: #f59e0b;
     color: white;
 }
 

@@ -1,16 +1,19 @@
 document.addEventListener('DOMContentLoaded', () => {
     const pasteInput = document.getElementById('paste-input');
     const saveBtn = document.getElementById('save-btn');
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
     const saveStatus = document.getElementById('save-status');
     const pastesContainer = document.getElementById('pastes-container');
 
     const API_URL = '/api/pastes';
+    let editingPasteId = null;
 
     // Fetch and display initial pastes
     fetchPastes();
 
     // Event listeners
     saveBtn.addEventListener('click', savePaste);
+    cancelEditBtn.addEventListener('click', cancelEdit);
 
     // Allow saving by pressing Ctrl+Enter or Cmd+Enter
     pasteInput.addEventListener('keydown', (e) => {
@@ -36,11 +39,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!content || !content.trim()) return;
 
         saveBtn.disabled = true;
-        saveBtn.textContent = 'Saving...';
+        saveBtn.textContent = editingPasteId ? 'Updating...' : 'Saving...';
 
         try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
+            const method = editingPasteId ? 'PUT' : 'POST';
+            const url = editingPasteId ? `${API_URL}/${editingPasteId}` : API_URL;
+
+            const response = await fetch(url, {
+                method,
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -49,11 +55,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!response.ok) throw new Error('Failed to save paste');
             
-            const newPaste = await response.json();
+            showStatus(editingPasteId ? 'Updated successfully!' : 'Saved successfully!');
             
-            // Show success message
-            showStatus('Saved successfully!');
-            pasteInput.value = '';
+            // Revert state
+            cancelEdit();
             
             // Refresh list
             fetchPastes();
@@ -62,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showStatus('Failed to save. Try again.', true);
         } finally {
             saveBtn.disabled = false;
-            saveBtn.textContent = 'Save Paste';
+            saveBtn.textContent = editingPasteId ? 'Update Paste' : 'Save Paste';
         }
     }
 
@@ -90,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="paste-header">
                     <span class="paste-time" title="${date.toLocaleString()}">${dateString} at ${timeString}</span>
                     <div class="paste-actions">
+                        <button class="edit-btn" data-id="${paste.id}" data-content="${encodeURIComponent(paste.content)}">Edit</button>
                         <button class="copy-btn" data-content="${encodeURIComponent(paste.content)}">Copy</button>
                         <button class="delete-btn" data-id="${paste.id}">Delete</button>
                     </div>
@@ -98,6 +104,16 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
 
             pastesContainer.appendChild(item);
+        });
+
+        // Add edit listeners
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = e.target.getAttribute('data-id');
+                const encodedContent = e.target.getAttribute('data-content');
+                const content = decodeURIComponent(encodedContent);
+                startEdit(id, content);
+            });
         });
 
         // Add copy listeners
@@ -118,6 +134,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         });
+    }
+
+    function startEdit(id, content) {
+        editingPasteId = id;
+        pasteInput.value = content;
+        saveBtn.textContent = 'Update Paste';
+        cancelEditBtn.style.display = 'inline-block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        pasteInput.focus();
+    }
+
+    function cancelEdit() {
+        editingPasteId = null;
+        pasteInput.value = '';
+        saveBtn.textContent = 'Save Paste';
+        cancelEditBtn.style.display = 'none';
     }
 
     async function deletePaste(id) {

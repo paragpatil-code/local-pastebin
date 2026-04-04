@@ -52,6 +52,32 @@ app.post('/api/pastes', (req, res) => {
     }
 });
 
+// Update a paste
+app.put('/api/pastes/:id', (req, res) => {
+    const { content } = req.body;
+    if (!content || !content.trim()) {
+        return res.status(400).json({ error: 'Content is required' });
+    }
+
+    try {
+        let data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+        const { id } = req.params;
+        const pasteIndex = data.findIndex(paste => paste.id === id);
+        
+        if (pasteIndex === -1) {
+            return res.status(404).json({ error: 'Paste not found' });
+        }
+        
+        data[pasteIndex].content = content;
+        data[pasteIndex].updatedAt = new Date().toISOString();
+        
+        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+        res.json(data[pasteIndex]);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update paste' });
+    }
+});
+
 // Delete a paste
 app.delete('/api/pastes/:id', (req, res) => {
     try {
