@@ -4,6 +4,7 @@ package-lock.json
 
 # Local Data (Crucial: do not commit personal pastes!)
 pastes.json
+uploads/
 
 # Environment variables
 .env
