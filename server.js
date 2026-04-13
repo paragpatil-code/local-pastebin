@@ -2,19 +2,39 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const multer = require('multer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, 'pastes.json');
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Initialize data file if it doesn't exist
 if (!fs.existsSync(DATA_FILE)) {
     fs.writeFileSync(DATA_FILE, JSON.stringify([]));
 }
+
+// Initialize uploads directory if it doesn't exist
+if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR);
+}
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, UPLOADS_DIR);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
+    }
+});
+const upload = multer({ storage });
 
 // Get all pastes
 app.get('/api/pastes', (req, res) => {
@@ -37,6 +57,7 @@ app.post('/api/pastes', (req, res) => {
         const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
         const newPaste = {
             id: Date.now().toString(),
+            type: 'text',
             content,
             createdAt: new Date().toISOString()
         };
@@ -49,6 +70,40 @@ app.post('/api/pastes', (req, res) => {
         res.status(201).json(newPaste);
     } catch (error) {
         res.status(500).json({ error: 'Failed to create paste' });
+    }
+});
+
+// Upload a new file
+app.post('/api/files', upload.single('file'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    try {
+        const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+        const newPaste = {
+            id: Date.now().toString(),
+            type: 'file',
+            file: {
+                filename: req.file.filename,
+                originalname: req.file.originalname,
+                mimetype: req.file.mimetype,
+                size: req.file.size
+            },
+            createdAt: new Date().toISOString()
+        };
+        data.unshift(newPaste);
+        
+        // Keep only top 100 pastes
+        const trimmedData = data.slice(0, 100);
+        
+        fs.writeFileSync(DATA_FILE, JSON.stringify(trimmedData, null, 2));
+        res.status(201).json(newPaste);
+    } catch (error) {
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+        res.status(500).json({ error: 'Failed to upload file' });
     }
 });
 
@@ -83,14 +138,23 @@ app.delete('/api/pastes/:id', (req, res) => {
     try {
         let data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
         const { id } = req.params;
-        const initialLength = data.length;
-        data = data.filter(paste => paste.id !== id);
         
-        if (data.length === initialLength) {
+        const pasteToDelete = data.find(paste => paste.id === id);
+        if (!pasteToDelete) {
             return res.status(404).json({ error: 'Paste not found' });
         }
         
+        data = data.filter(paste => paste.id !== id);
         fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+
+        // If it was a file, delete the file from the uploads directory
+        if (pasteToDelete.type === 'file' && pasteToDelete.file && pasteToDelete.file.filename) {
+            const filePath = path.join(UPLOADS_DIR, pasteToDelete.file.filename);
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
+        }
+        
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: 'Failed to delete paste' });

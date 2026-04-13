@@ -298,6 +298,49 @@ header p {
     color: white;
 }
 
+.file-card {
+    background: var(--paste-bg);
+    padding: 1.5rem;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+    text-align: center;
+}
+
+.file-icon {
+    font-size: 3rem;
+    color: var(--primary);
+}
+
+.file-info {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.file-size {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+.download-btn {
+    background: var(--primary);
+    color: white;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+    display: inline-block;
+}
+
+.download-btn:hover {
+    background: var(--primary-hover);
+}
+
 .paste-actions {
     display: flex;
     gap: 0.5rem;

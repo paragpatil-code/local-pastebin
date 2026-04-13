@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelEditBtn = document.getElementById('cancel-edit-btn');
     const saveStatus = document.getElementById('save-status');
     const pastesContainer = document.getElementById('pastes-container');
+    const uploadFileBtn = document.getElementById('upload-file-btn');
+    const fileInput = document.getElementById('file-input');
 
     const API_URL = '/api/pastes';
     let editingPasteId = null;
@@ -14,6 +16,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event listeners
     saveBtn.addEventListener('click', savePaste);
     cancelEditBtn.addEventListener('click', cancelEdit);
+    
+    uploadFileBtn.addEventListener('click', () => {
+        fileInput.click();
+    });
+    fileInput.addEventListener('change', uploadFile);
 
     // Allow saving by pressing Ctrl+Enter or Cmd+Enter
     pasteInput.addEventListener('keydown', (e) => {
@@ -71,6 +78,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function uploadFile(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        uploadFileBtn.disabled = true;
+        uploadFileBtn.textContent = 'Uploading...';
+
+        try {
+            const response = await fetch('/api/files', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) throw new Error('Failed to upload file');
+            
+            showStatus('File uploaded successfully!');
+            fetchPastes();
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            showStatus('Failed to upload file.', true);
+        } finally {
+            uploadFileBtn.disabled = false;
+            uploadFileBtn.textContent = 'Upload File';
+            fileInput.value = ''; // reset input
+        }
+    }
+
     function renderPastes(pastes) {
         pastesContainer.innerHTML = '';
         
@@ -91,17 +128,37 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = document.createElement('div');
             item.className = 'paste-item';
             
-            item.innerHTML = `
-                <div class="paste-header">
-                    <span class="paste-time" title="${date.toLocaleString()}">${dateString} at ${timeString}</span>
-                    <div class="paste-actions">
-                        <button class="edit-btn" data-id="${paste.id}" data-content="${encodeURIComponent(paste.content)}">Edit</button>
-                        <button class="copy-btn" data-content="${encodeURIComponent(paste.content)}">Copy</button>
-                        <button class="delete-btn" data-id="${paste.id}">Delete</button>
+            if (paste.type === 'file') {
+                const fileSize = formatBytes(paste.file.size);
+                item.innerHTML = `
+                    <div class="paste-header">
+                        <span class="paste-time" title="${date.toLocaleString()}">${dateString} at ${timeString}</span>
+                        <div class="paste-actions">
+                            <button class="delete-btn" data-id="${paste.id}">Delete</button>
+                        </div>
                     </div>
-                </div>
-                <div class="paste-content">${escapeHTML(paste.content)}</div>
-            `;
+                    <div class="file-card">
+                        <div class="file-icon">📄</div>
+                        <div class="file-info">
+                            <div><strong>${escapeHTML(paste.file.originalname)}</strong></div>
+                            <div class="file-size">${fileSize}</div>
+                        </div>
+                        <a href="/uploads/${paste.file.filename}" class="download-btn" download="${escapeHTML(paste.file.originalname)}" target="_blank">Download File</a>
+                    </div>
+                `;
+            } else {
+                item.innerHTML = `
+                    <div class="paste-header">
+                        <span class="paste-time" title="${date.toLocaleString()}">${dateString} at ${timeString}</span>
+                        <div class="paste-actions">
+                            <button class="edit-btn" data-id="${paste.id}" data-content="${encodeURIComponent(paste.content)}">Edit</button>
+                            <button class="copy-btn" data-content="${encodeURIComponent(paste.content)}">Copy</button>
+                            <button class="delete-btn" data-id="${paste.id}">Delete</button>
+                        </div>
+                    </div>
+                    <div class="paste-content">${escapeHTML(paste.content)}</div>
+                `;
+            }
 
             pastesContainer.appendChild(item);
         });
@@ -214,5 +271,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 '"': '&quot;'
             }[tag])
         );
+    }
+
+    function formatBytes(bytes, decimals = 2) {
+        if (!+bytes) return '0 Bytes';
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
     }
 });
