@@ -73,25 +73,27 @@ app.post('/api/pastes', (req, res) => {
     }
 });
 
-// Upload a new file
-app.post('/api/files', upload.single('file'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: 'No file uploaded' });
+// Upload new files
+app.post('/api/files', upload.array('files'), (req, res) => {
+    if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ error: 'No files uploaded' });
     }
 
     try {
         const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+        
         const newPaste = {
-            id: Date.now().toString(),
-            type: 'file',
-            file: {
-                filename: req.file.filename,
-                originalname: req.file.originalname,
-                mimetype: req.file.mimetype,
-                size: req.file.size
-            },
+            id: Date.now().toString() + '-' + Math.round(Math.random() * 1E4),
+            type: 'file_group',
+            files: req.files.map(file => ({
+                filename: file.filename,
+                originalname: file.originalname,
+                mimetype: file.mimetype,
+                size: file.size
+            })),
             createdAt: new Date().toISOString()
         };
+
         data.unshift(newPaste);
         
         // Keep only top 100 pastes
@@ -100,10 +102,14 @@ app.post('/api/files', upload.single('file'), (req, res) => {
         fs.writeFileSync(DATA_FILE, JSON.stringify(trimmedData, null, 2));
         res.status(201).json(newPaste);
     } catch (error) {
-        if (req.file && fs.existsSync(req.file.path)) {
-            fs.unlinkSync(req.file.path);
+        if (req.files) {
+            req.files.forEach(file => {
+                if (fs.existsSync(file.path)) {
+                    fs.unlinkSync(file.path);
+                }
+            });
         }
-        res.status(500).json({ error: 'Failed to upload file' });
+        res.status(500).json({ error: 'Failed to upload files' });
     }
 });
 
@@ -153,6 +159,13 @@ app.delete('/api/pastes/:id', (req, res) => {
             if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
             }
+        } else if (pasteToDelete.type === 'file_group' && pasteToDelete.files) {
+            pasteToDelete.files.forEach(f => {
+                const filePath = path.join(UPLOADS_DIR, f.filename);
+                if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath);
+                }
+            });
         }
         
         res.json({ success: true });

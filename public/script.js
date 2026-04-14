@@ -79,11 +79,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function uploadFile(e) {
-        const file = e.target.files[0];
-        if (!file) return;
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
 
         const formData = new FormData();
-        formData.append('file', file);
+        for (let i = 0; i < files.length; i++) {
+            formData.append('files', files[i]);
+        }
 
         uploadFileBtn.disabled = true;
         uploadFileBtn.textContent = 'Uploading...';
@@ -94,13 +96,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: formData
             });
 
-            if (!response.ok) throw new Error('Failed to upload file');
+            if (!response.ok) throw new Error('Failed to upload file(s)');
             
-            showStatus('File uploaded successfully!');
+            showStatus(files.length > 1 ? `${files.length} files uploaded successfully!` : 'File uploaded successfully!');
             fetchPastes();
         } catch (error) {
-            console.error('Error uploading file:', error);
-            showStatus('Failed to upload file.', true);
+            console.error('Error uploading file(s):', error);
+            showStatus('Failed to upload file(s).', true);
         } finally {
             uploadFileBtn.disabled = false;
             uploadFileBtn.textContent = 'Upload File';
@@ -144,6 +146,32 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="file-size">${fileSize}</div>
                         </div>
                         <a href="/uploads/${paste.file.filename}" class="download-btn" download="${escapeHTML(paste.file.originalname)}" target="_blank">Download File</a>
+                    </div>
+                `;
+            } else if (paste.type === 'file_group') {
+                let fileCardsHTML = '';
+                paste.files.forEach(f => {
+                    const fileSize = formatBytes(f.size);
+                    fileCardsHTML += `
+                        <div class="file-card" style="margin-bottom: 8px;">
+                            <div class="file-icon">📄</div>
+                            <div class="file-info">
+                                <div><strong>${escapeHTML(f.originalname)}</strong></div>
+                                <div class="file-size">${fileSize}</div>
+                            </div>
+                            <a href="/uploads/${f.filename}" class="download-btn" download="${escapeHTML(f.originalname)}" target="_blank">Download File</a>
+                        </div>
+                    `;
+                });
+                item.innerHTML = `
+                    <div class="paste-header">
+                        <span class="paste-time" title="${date.toLocaleString()}">${dateString} at ${timeString}</span>
+                        <div class="paste-actions">
+                            <button class="delete-btn" data-id="${paste.id}">Delete</button>
+                        </div>
+                    </div>
+                    <div class="file-group">
+                        ${fileCardsHTML}
                     </div>
                 `;
             } else {
