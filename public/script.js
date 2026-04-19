@@ -29,6 +29,118 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    pasteInput.addEventListener('paste', (e) => {
+        const htmlData = e.clipboardData.getData('text/html');
+        
+        if (htmlData && htmlData.toLowerCase().includes('<table')) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlData, 'text/html');
+            const tables = Array.from(doc.querySelectorAll('table'));
+            
+            if (tables.length > 0) {
+                e.preventDefault();
+                
+                tables.forEach(table => {
+                    const asciiTable = parseTableToAscii(table);
+                    const pre = doc.createElement('pre');
+                    pre.textContent = '\n' + asciiTable + '\n';
+                    table.parentNode.replaceChild(pre, table);
+                });
+                
+                doc.querySelectorAll('style, script, meta, link, noscript, [style*="display:none"], [style*="display: none"]').forEach(el => el.remove());
+                
+                let finalText = extractTextFromNode(doc.body);
+                finalText = finalText.replace(/\n{3,}/g, '\n\n').trim();
+                
+                const start = pasteInput.selectionStart;
+                const end = pasteInput.selectionEnd;
+                const text = pasteInput.value;
+                pasteInput.value = text.substring(0, start) + finalText + text.substring(end);
+                
+                pasteInput.selectionStart = pasteInput.selectionEnd = start + finalText.length;
+            }
+        }
+    });
+
+    function extractTextFromNode(node) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            return node.textContent.replace(/\s+/g, ' ');
+        }
+        if (node.nodeType !== Node.ELEMENT_NODE) return '';
+        
+        if (node.tagName === 'PRE') {
+            return node.textContent;
+        }
+        
+        let text = '';
+        const blockElements = ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'BR', 'BLOCKQUOTE', 'TR'];
+        
+        if (node.tagName === 'BR') {
+            return '\n';
+        }
+        
+        for (const child of node.childNodes) {
+            text += extractTextFromNode(child);
+        }
+        
+        if (blockElements.includes(node.tagName) && text.trim() !== '') {
+            text = '\n' + text.trim() + '\n';
+        }
+        
+        return text;
+    }
+
+    function parseTableToAscii(table) {
+        const rows = Array.from(table.querySelectorAll('tr')).filter(tr => tr.closest('table') === table);
+        const tableData = [];
+        
+        rows.forEach(row => {
+            const rowData = [];
+            const cells = Array.from(row.querySelectorAll('td, th')).filter(cell => cell.closest('tr') === row);
+            cells.forEach(cell => {
+                let cellText = cell.textContent || '';
+                cellText = cellText.replace(/[\n\r]+/g, ' ').replace(/\s+/g, ' ').trim();
+                rowData.push(cellText);
+            });
+            if (rowData.length > 0) {
+                tableData.push(rowData);
+            }
+        });
+
+        if (tableData.length === 0) return '';
+
+        const colWidths = [];
+        tableData.forEach(row => {
+            row.forEach((cell, i) => {
+                if (!colWidths[i]) colWidths[i] = 0;
+                if (cell.length > colWidths[i]) {
+                    colWidths[i] = cell.length;
+                }
+            });
+        });
+
+        let asciiTable = '';
+        const separator = '+' + colWidths.map(w => '-'.repeat(w + 2)).join('+') + '+';
+        
+        asciiTable += separator + '\n';
+        
+        tableData.forEach((row, rowIndex) => {
+            let rowStr = '|';
+            for (let i = 0; i < colWidths.length; i++) {
+                const cellText = row[i] || '';
+                const paddedCell = ' ' + cellText.padEnd(colWidths[i], ' ') + ' ';
+                rowStr += paddedCell + '|';
+            }
+            asciiTable += rowStr + '\n';
+            
+            if (rowIndex === 0 || rowIndex === tableData.length - 1) {
+                asciiTable += separator + '\n';
+            }
+        });
+        
+        return asciiTable;
+    }
+
     async function fetchPastes() {
         try {
             const response = await fetch(API_URL);
