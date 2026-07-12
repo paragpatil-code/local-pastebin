@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const multer = require('multer');
 
 const app = express();
@@ -175,6 +176,15 @@ app.delete('/api/pastes/:id', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
+    const interfaces = os.networkInterfaces();
+    const allIPv4 = Object.values(interfaces).flat()
+        .filter(iface => iface.family === 'IPv4' && !iface.internal)
+        .map(iface => iface.address);
+
     console.log(`Pastebin server running on port ${PORT}`);
-    console.log(`Accessible on your local network at http://<YOUR_LOCAL_IP>:${PORT}`);
+    console.log(`  Local:   http://localhost:${PORT}`);
+    allIPv4.forEach(ip => {
+        console.log(`  Network: http://${ip}:${PORT}`);
+    });
 });
+
